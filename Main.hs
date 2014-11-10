@@ -3,7 +3,6 @@ module Main where
 import System.IO
 import Control.Monad
 import Data.Graph
-import Data.Default
 
 
 type From = Int
@@ -27,9 +26,6 @@ data Player = Player{pid :: Int
                     }
               deriving (Eq, Show)
 
-instance Default Player where
-  def = Player (-1) [] 0 []
-
 type Area = Tree Vertex
 
 data GameState = GameState{turn :: Int
@@ -41,8 +37,19 @@ data GameState = GameState{turn :: Int
                           }
                  deriving (Eq, Show)
 
-instance Default GameState where
-  def = GameState 0 [] [] [] 0 (-1)
+data TDZone = TDZone{tdzId :: Int
+                    ,tdzOwner :: Int
+                    ,tdzP0Drons :: Int
+                    ,tdzP1Drons :: Int
+                    ,tdzP2Drons :: Int
+                    ,tdzP3Drons :: Int
+                    }
+            deriving (Eq, Show)
+
+data TurnData = TurnData{tdGold :: Int
+                        ,tdZones :: [TDZone]
+                        }
+              deriving (Eq, Show)
 
 main :: IO ()
 main = do
@@ -52,7 +59,7 @@ main = do
   -- the standard input according to the problem statement.
     
   input_line <- getLine
-  hPutStrLn stderr input_line
+--  hPutStrLn stderr input_line
   let input = words input_line
       playercount = read (input!!0) :: Int -- the amount of players (2 to 4)
       myid = read (input!!1) :: Int -- my player ID (0, 1, 2 or 3)
@@ -79,18 +86,15 @@ main = do
 --      areas = dff field
 --  print (edges)
 --  print areas
-  putStrLn "Start game loop"
-  loop def{areas=dff field, allZones=zones}
+--  putStrLn "Start game loop"
+  loop $ GameState 0 [] zones [] 20 myid
 
 loop :: GameState -> IO ()
 loop st = do
-  let zonecount = length $ allZones st
-  print zonecount
-{--
   input_line <- getLine
   let platinum = read input_line :: Int -- my available Platinum
-      zonecount = length $ areas st
-  replicateM zonecount $ do
+      zonecount = length $ allZones st
+  tdz <- replicateM zonecount $ do
     input_line <- getLine
     let input = words input_line
         zid = read (input!!0) :: Int -- this zone's ID
@@ -99,15 +103,17 @@ loop st = do
         podsp1 = read (input!!3) :: Int -- player 1's PODs on this zone
         podsp2 = read (input!!4) :: Int -- player 2's PODs on this zone (always 0 for a two player game)
         podsp3 = read (input!!5) :: Int -- player 3's PODs on this zone (always 0 for a two or three player game)
-    return ()
+    return $ (TDZone zid ownerid podsp0 podsp1 podsp2 podsp3)
     
     -- hPutStrLn stderr "Debug messages..."
-    
+  let td = TurnData platinum tdz
+      toTake = head $ filter (\z -> (tdzOwner z) == (-1)) tdz
+      zid = tdzId toTake
     -- first line for movement commands, second line for POD purchase (see the protocol in the statement for details)
   putStrLn "WAIT"
-  putStrLn "1 73"
---}    
-  --loop st
+  putStrLn $ "1 " ++ (show zid)
+    
+  loop st
 
 g1 = buildG (0,153) [(21,28),(28,21)
                     ,(21,29),(29,21)
